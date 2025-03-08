@@ -62,7 +62,7 @@ router.get('/', async (req, res) => {
                 browser: ['Chrome (Linux)', '', '']
             });
 
-            if (!Pair_Code_By_Brasho_Kish.authState.creds.registered) {
+            if (!Pair_Code_By_Masterpeace_elite.authState.creds.registered) {
                 await delay(1500);
                 num = num.replace(/[^0-9]/g, '');
                 const code = await Pair_Code_By_masterpeace_elite.requestPairingCode(num);
