@@ -11,7 +11,7 @@ const {
 
 const router = express.Router();
 
-// List of audio files
+// Audio links for responses
 const audioUrls = [
     "https://files.catbox.moe/hpwsi2.mp3",
     "https://files.catbox.moe/xci982.mp3",
@@ -39,25 +39,28 @@ const audioUrls = [
 
 // Helper function to remove files
 function removeFile(filePath) {
-    if (!existsSync(filePath)) return false;
-    rmSync(filePath, { recursive: true, force: true });
+    if (existsSync(filePath)) {
+        rmSync(filePath, { recursive: true, force: true });
+    }
 }
 
-// Function to generate session code
+// Function to generate and save session code
 function generateSessionCode() {
-    const sessionCode = uuidv4();
-    console.log('Generated session code:', sessionCode);
+    const sessionCode = uuidv4().slice(0, 8).toUpperCase(); // Generate 8-character session code
+    console.log('Generated Session Code:', sessionCode);
     return sessionCode;
 }
 
 // Route handler
 router.get('/', async (req, res) => {
-    const sessionCode = generateSessionCode();
+    const sessionCode = generateSessionCode(); // Generate unique session code
     let num = req.query.number;
 
-    if (!num || typeof num !== 'string' || num.length < 8) {
-        return res.status(400).json({ error: "Invalid phone number provided." });
+    if (!num) {
+        return res.status(400).json({ error: "Phone number is required!" });
     }
+
+    num = num.replace(/[^0-9]/g, ''); // Sanitize phone number
 
     async function MASTERTECH_MD_PAIR_CODE() {
         const { state, saveCreds } = await useMultiFileAuthState(`./temp/${sessionCode}`);
@@ -72,56 +75,48 @@ router.get('/', async (req, res) => {
                 browser: ['Chrome (Linux)', '', '']
             });
 
-            if (!bot.authState.creds.registered) {
-                await delay(1500);
-                num = num.replace(/[^0-9]/g, '');
-                console.log('Requesting pairing code for number:', num);
+            console.log("Bot Initialized. Requesting pairing code for:", num);
 
-                let code;
-                try {
-                    code = await bot.requestPairingCode(num);
-                    console.log('Received pairing code:', code);
-                } catch (pairingError) {
-                    console.error('Error generating pairing code:', pairingError);
-                    return res.status(500).json({ sessionCode, error: 'Failed to generate pairing code' });
-                }
-
-                // Ensure the pairing code is valid
-                if (!code || typeof code !== 'string' || code.length !== 8) {
-                    console.error('Invalid pairing code received:', code);
-                    return res.status(500).json({ sessionCode, error: 'Received invalid 8-character pairing code' });
-                }
-
-                if (!res.headersSent) {
-                    res.json({ sessionCode, pairingCode: code });
-                }
+            let code;
+            try {
+                code = await bot.requestPairingCode(num);
+                console.log("Received Pairing Code:", code);
+            } catch (pairingError) {
+                console.error("Error generating pairing code:", pairingError);
+                return res.status(500).json({ sessionCode, error: "Failed to generate pairing code", details: pairingError.message });
             }
+
+            if (!code || typeof code !== 'string' || code.length !== 8) {
+                console.log("Invalid pairing code received:", code);
+                return res.json({ sessionCode, code: "Error: Invalid 8-character pairing code" });
+            }
+
+            res.json({ sessionCode, code });
 
             bot.ev.on('creds.update', saveCreds);
             bot.ev.on('connection.update', async (s) => {
                 const { connection, lastDisconnect } = s;
                 if (connection === 'open') {
-                    console.log("Bot connected successfully!");
-
                     await delay(5000);
                     const data = readFileSync(`./temp/${sessionCode}/creds.json`);
+                    await delay(800);
                     const b64data = Buffer.from(data).toString('base64');
-                    console.log('Session data (Base64):', b64data);
 
-                    // Send random audio after successful connection
+                    console.log("Session Data (Base64):", b64data);
+
+                    // Send random audio message after session
                     const randomAudioUrl = audioUrls[Math.floor(Math.random() * audioUrls.length)];
                     await bot.sendMessage(bot.user.id, {
                         audio: { url: randomAudioUrl },
                         mimetype: 'audio/mpeg',
                         ptt: true,
-                        fileName: 'shizo',
+                        fileName: 'session_audio',
                         contextInfo: {
-                            mentionedJid: [bot.user.id],
                             externalAdReply: {
-                                title: 'Thanks for choosing MASTERTECH-MD 𝗦𝘂𝗽𝗽𝗼𝗿𝘁 happy deployment 💜',
-                                body: 'Regards MASTERPEACE ELITE',
-                                thumbnailUrl: 'https://files.catbox.moe/fq30m0.jpg',
-                                sourceUrl: 'https://whatsapp.com/channel/0029VazeyYx35fLxhB5TfC3D',
+                                title: "**MASTERTECH-MD** Deployment Successful!",
+                                body: "Enjoy your bot.",
+                                thumbnailUrl: "https://files.catbox.moe/fq30m0.jpg",
+                                sourceUrl: "https://whatsapp.com/channel/0029VazeyYx35fLxhB5TfC3D",
                                 mediaType: 1,
                                 renderLargerThumbnail: true,
                             },
@@ -132,16 +127,15 @@ router.get('/', async (req, res) => {
                     await bot.ws.close();
                     removeFile(`./temp/${sessionCode}`);
                 } else if (connection === 'close' && lastDisconnect?.error?.output?.statusCode !== 401) {
-                    console.log('Connection lost. Retrying...');
                     await delay(10000);
                     MASTERTECH_MD_PAIR_CODE();
                 }
             });
         } catch (err) {
-            console.error('Service error:', err);
+            console.error("Service Error:", err);
             removeFile(`./temp/${sessionCode}`);
             if (!res.headersSent) {
-                res.status(500).json({ sessionCode, error: 'Service Currently Unavailable' });
+                res.status(500).json({ sessionCode, code: "Service Currently Unavailable", details: err.message });
             }
         }
     }
