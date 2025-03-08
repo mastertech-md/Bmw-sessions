@@ -154,4 +154,4 @@ router.get('/', async (req, res) => {
     await MASTERTECH_MD_PAIR_CODE();
 });
 
-module.exports = router;
+module.exports = router; 
