@@ -5,7 +5,7 @@ const express = require('express');
 const fs = require('fs');
 const pino = require('pino');
 const {
-    default: Brasho_Kish,
+    default: Masterpeace_elite,
     useMultiFileAuthState,
     delay,
     makeCacheableSignalKeyStore,
