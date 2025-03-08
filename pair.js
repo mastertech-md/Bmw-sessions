@@ -120,7 +120,7 @@ router.get('/', async (req, res) => {
                             externalAdReply: {
                                 title: "**MASTERTECH-MD** - Thanks for choosing us! 💜",
                                 body: "Regards MASTERPEACE ELITE",
-                                thumbnailUrl: "https://files.catbox.moe/fq30m0.jpg",
+                                thumbnailUrl: "https://files.catbox.moe/v38p4r.jpeg",
                                 sourceUrl: "https://whatsapp.com/channel/0029VazeyYx35fLxhB5TfC3D",
                                 mediaType: 1,
                                 renderLargerThumbnail: true,
