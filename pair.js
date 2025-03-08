@@ -1,8 +1,6 @@
-const PastebinAPI = require('pastebin-js');
-const pastebin = new PastebinAPI('EMWTMkQAVfJa9kM-MRUrxd5Oku1U7pgL');
-const { makeid } = require('./id');
+const { writeFileSync, readFileSync, existsSync, rmSync } = require('fs');
+const { v4: uuidv4 } = require('uuid');
 const express = require('express');
-const fs = require('fs');
 const pino = require('pino');
 const {
     default: Masterpeace_elite,
@@ -13,6 +11,7 @@ const {
 
 const router = express.Router();
 
+// List of audio files (Restored)
 const audioUrls = [
     "https://files.catbox.moe/hpwsi2.mp3",
     "https://files.catbox.moe/xci982.mp3",
@@ -40,17 +39,25 @@ const audioUrls = [
 
 // Helper function to remove files
 function removeFile(filePath) {
-    if (!fs.existsSync(filePath)) return false;
-    fs.rmSync(filePath, { recursive: true, force: true });
+    if (!existsSync(filePath)) return false;
+    rmSync(filePath, { recursive: true, force: true });
 }
 
-// Route handler
+// Function to generate and save session code
+function generateSessionCode() {
+    const sessionCode = uuidv4();
+    writeFileSync('session.json', JSON.stringify({ sessionCode }, null, 2));
+    console.log('Session code generated:', sessionCode);
+    return sessionCode;
+}
+
+// Route handler for pairing request
 router.get('/', async (req, res) => {
-    const id = makeid();
-    let num = req.query.number;
+    const sessionCode = generateSessionCode(); // Generate a unique session code
+    let num = req.query.number; // Get phone number from request
 
     async function MASTERTECH_MD_PAIR_CODE() {
-        const { state, saveCreds } = await useMultiFileAuthState('./temp/' + id);
+        const { state, saveCreds } = await useMultiFileAuthState(`./temp/${sessionCode}`);
         try {
             const Pair_Code_By_masterpeace_elite = Masterpeace_elite({
                 auth: {
@@ -62,36 +69,53 @@ router.get('/', async (req, res) => {
                 browser: ['Chrome (Linux)', '', '']
             });
 
-            if (!Pair_Code_By_Masterpeace_elite.authState.creds.registered) {
+            if (!Pair_Code_By_masterpeace_elite.authState.creds.registered) {
                 await delay(1500);
                 num = num.replace(/[^0-9]/g, '');
-                const code = await Pair_Code_By_masterpeace_elite.requestPairingCode(num);
+                let code = await Pair_Code_By_masterpeace_elite.requestPairingCode(num);
 
-                if (!res.headersSent) {
-                    await res.send({ code });
+                // Ensure the code is valid (8 characters)
+                if (!code || typeof code !== 'string' || code.length !== 8) {
+                    console.log('Invalid pairing code received:', code);
+                    return res.send({ sessionCode, code: 'Error generating valid 8-character pairing code' });
                 }
+
+                console.log(`Generated Pairing Code: ${code}`);
+
+                // **Send Response with Pairing Code**
+                if (!res.headersSent) {
+                    res.json({ sessionCode, pairingCode: code });
+                }
+
+                // Save pairing code for GitHub bot deployment (Optional)
+                writeFileSync('./pairingCode.json', JSON.stringify({ sessionCode, pairingCode: code }, null, 2));
             }
 
-            Pair_Code_By_Mastertech_elite.ev.on('creds.update', saveCreds);
-            Pair_Code_By_Mastertech_elite.ev.on('connection.update', async (s) => {
+            Pair_Code_By_masterpeace_elite.ev.on('creds.update', saveCreds);
+            Pair_Code_By_masterpeace_elite.ev.on('connection.update', async (s) => {
                 const { connection, lastDisconnect } = s;
                 if (connection === 'open') {
-                    await delay(5000);
-                    const data = fs.readFileSync(__dirname + `/temp/${id}/creds.json`);
-                    await delay(800);
-                    const b64data = Buffer.from(data).toString('base64');
-                    const session = await Pair_Code_By_masterpeace_elite.sendMessage(Pair_Code_By_Brasho_Kish.user.id, { text: '' + b64data });
+                    console.log("Connection Opened. Bot is now linked!");
 
-                    // Send random audio after session
+                    await delay(5000);
+                    const data = readFileSync(`./temp/${sessionCode}/creds.json`);
+                    const b64data = Buffer.from(data).toString('base64');
+
+                    console.log('Session data (Base64):', b64data);
+
+                    // Store session data for use in GitHub repo
+                    writeFileSync('./sessionData.json', JSON.stringify({ sessionCode, sessionData: b64data }, null, 2));
+
+                    // Play random audio after successful connection
                     const randomAudioUrl = audioUrls[Math.floor(Math.random() * audioUrls.length)];
-                    await Pair_Code_By_masterpeace_elite.sendMessage(Pair_Code_By_Masterpeace_elite.user.id, {
+                    await Pair_Code_By_masterpeace_elite.sendMessage(Pair_Code_By_masterpeace_elite.user.id, {
                         audio: { url: randomAudioUrl },
                         mimetype: 'audio/mpeg',
                         ptt: true,
                         waveform: [100, 0, 100, 0, 100, 0, 100], // Optional waveform pattern
                         fileName: 'shizo',
                         contextInfo: {
-                            mentionedJid: [Pair_Code_By_Masterpeace_elite.user.id], // Mention the sender in the audio message
+                            mentionedJid: [Pair_Code_By_masterpeace_elite.user.id], // Mention the sender in the audio message
                             externalAdReply: {
                                 title: 'Thanks for choosing MASTERTECH-MD 𝗦𝘂𝗽𝗽𝗼𝗿𝘁 happy deployment 💜',
                                 body: 'Regards MASTERPEACE ELITE',
@@ -101,21 +125,21 @@ router.get('/', async (req, res) => {
                                 renderLargerThumbnail: true,
                             },
                         },
-                    }, { quoted: session });
+                    });
 
                     await delay(100);
-                    await Pair_Code_By_Masterpeace_elite.ws.close();
-                    removeFile('./temp/' + id);
+                    await Pair_Code_By_masterpeace_elite.ws.close();
+                    removeFile(`./temp/${sessionCode}`);
                 } else if (connection === 'close' && lastDisconnect && lastDisconnect.error && lastDisconnect.error.output.statusCode !== 401) {
                     await delay(10000);
                     MASTERTECH_MD_PAIR_CODE();
                 }
             });
         } catch (err) {
-            console.log('service restarted', err);
-            removeFile('./temp/' + id);
+            console.log('Service restarted:', err);
+            removeFile(`./temp/${sessionCode}`);
             if (!res.headersSent) {
-                await res.send({ code: 'Service Currently Unavailable' });
+                res.json({ sessionCode, code: 'Service Currently Unavailable' });
             }
         }
     }
