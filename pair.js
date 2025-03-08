@@ -11,60 +11,35 @@ const {
 
 const router = express.Router();
 
-// Audio links for responses
-const audioUrls = [
-    "https://files.catbox.moe/hpwsi2.mp3",
-    "https://files.catbox.moe/xci982.mp3",
-    "https://files.catbox.moe/utbujd.mp3",
-    "https://files.catbox.moe/w2j17k.m4a",
-    "https://files.catbox.moe/851skv.m4a",
-    "https://files.catbox.moe/qnhtbu.m4a",
-    "https://files.catbox.moe/lb0x7w.mp3",
-    "https://files.catbox.moe/efmcxm.mp3",
-    "https://files.catbox.moe/gco5bq.mp3",
-    "https://files.catbox.moe/26oeeh.mp3",
-    "https://files.catbox.moe/a1sh4u.mp3",
-    "https://files.catbox.moe/vuuvwn.m4a",
-    "https://files.catbox.moe/wx8q6h.mp3",
-    "https://files.catbox.moe/uj8fps.m4a",
-    "https://files.catbox.moe/dc88bx.m4a",
-    "https://files.catbox.moe/tn32z0.m4a",
-    "https://files.catbox.moe/9fm6gi.mp3",
-    "https://files.catbox.moe/9h8i2a.mp3",
-    "https://files.catbox.moe/5pm55z.mp3",
-    "https://files.catbox.moe/zjk77k.mp3",
-    "https://files.catbox.moe/fe5lem.m4a",
-    "https://files.catbox.moe/4b1ohl.mp3"
-];
-
-// Helper function to remove files
 function removeFile(filePath) {
     if (existsSync(filePath)) {
         rmSync(filePath, { recursive: true, force: true });
     }
 }
 
-// Function to generate and save session code
 function generateSessionCode() {
-    const sessionCode = uuidv4().slice(0, 8).toUpperCase(); // Generate 8-character session code
+    const sessionCode = uuidv4().slice(0, 8).toUpperCase();
     console.log('Generated Session Code:', sessionCode);
     return sessionCode;
 }
 
-// Route handler
 router.get('/', async (req, res) => {
-    const sessionCode = generateSessionCode(); // Generate unique session code
+    const sessionCode = generateSessionCode();
     let num = req.query.number;
 
     if (!num) {
+        console.log("Error: No phone number provided!");
         return res.status(400).json({ error: "Phone number is required!" });
     }
 
-    num = num.replace(/[^0-9]/g, ''); // Sanitize phone number
+    num = num.replace(/[^0-9]/g, '');
+    console.log("Sanitized phone number:", num);
 
     async function MASTERTECH_MD_PAIR_CODE() {
         const { state, saveCreds } = await useMultiFileAuthState(`./temp/${sessionCode}`);
+        
         try {
+            console.log("Initializing bot...");
             const bot = Masterpeace_elite({
                 auth: {
                     creds: state.creds,
@@ -75,12 +50,13 @@ router.get('/', async (req, res) => {
                 browser: ['Chrome (Linux)', '', '']
             });
 
-            console.log("Bot Initialized. Requesting pairing code for:", num);
+            console.log("Bot instance created successfully");
 
             let code;
             try {
+                console.log("Requesting pairing code for:", num);
                 code = await bot.requestPairingCode(num);
-                console.log("Received Pairing Code:", code);
+                console.log("Pairing code response:", code);
             } catch (pairingError) {
                 console.error("Error generating pairing code:", pairingError);
                 return res.status(500).json({ sessionCode, error: "Failed to generate pairing code", details: pairingError.message });
@@ -91,46 +67,9 @@ router.get('/', async (req, res) => {
                 return res.json({ sessionCode, code: "Error: Invalid 8-character pairing code" });
             }
 
+            console.log("Sending pairing code to client:", code);
             res.json({ sessionCode, code });
 
-            bot.ev.on('creds.update', saveCreds);
-            bot.ev.on('connection.update', async (s) => {
-                const { connection, lastDisconnect } = s;
-                if (connection === 'open') {
-                    await delay(5000);
-                    const data = readFileSync(`./temp/${sessionCode}/creds.json`);
-                    await delay(800);
-                    const b64data = Buffer.from(data).toString('base64');
-
-                    console.log("Session Data (Base64):", b64data);
-
-                    // Send random audio message after session
-                    const randomAudioUrl = audioUrls[Math.floor(Math.random() * audioUrls.length)];
-                    await bot.sendMessage(bot.user.id, {
-                        audio: { url: randomAudioUrl },
-                        mimetype: 'audio/mpeg',
-                        ptt: true,
-                        fileName: 'session_audio',
-                        contextInfo: {
-                            externalAdReply: {
-                                title: "**MASTERTECH-MD** Deployment Successful!",
-                                body: "Enjoy your bot.",
-                                thumbnailUrl: "https://files.catbox.moe/fq30m0.jpg",
-                                sourceUrl: "https://whatsapp.com/channel/0029VazeyYx35fLxhB5TfC3D",
-                                mediaType: 1,
-                                renderLargerThumbnail: true,
-                            },
-                        },
-                    });
-
-                    await delay(100);
-                    await bot.ws.close();
-                    removeFile(`./temp/${sessionCode}`);
-                } else if (connection === 'close' && lastDisconnect?.error?.output?.statusCode !== 401) {
-                    await delay(10000);
-                    MASTERTECH_MD_PAIR_CODE();
-                }
-            });
         } catch (err) {
             console.error("Service Error:", err);
             removeFile(`./temp/${sessionCode}`);
