@@ -1,7 +1,7 @@
-const { writeFileSync, readFileSync, existsSync, rmSync } = require('fs');
-const { v4: uuidv4 } = require('uuid');
+const { existsSync, rmSync } = require('fs');
 const express = require('express');
 const pino = require('pino');
+const { v4: uuidv4 } = require('uuid');
 const {
     default: Masterpeace_elite,
     useMultiFileAuthState,
@@ -11,35 +11,39 @@ const {
 
 const router = express.Router();
 
+// Helper function to remove old sessions
 function removeFile(filePath) {
     if (existsSync(filePath)) {
         rmSync(filePath, { recursive: true, force: true });
     }
 }
 
+// Generate a unique session ID
 function generateSessionCode() {
-    const sessionCode = uuidv4().slice(0, 8).toUpperCase();
-    console.log('Generated Session Code:', sessionCode);
-    return sessionCode;
+    return uuidv4().slice(0, 8).toUpperCase();
 }
 
+// Main route to generate pairing code
 router.get('/', async (req, res) => {
+    console.log("🔄 Incoming request... Generating session...");
+
     const sessionCode = generateSessionCode();
     let num = req.query.number;
 
     if (!num) {
-        console.log("Error: No phone number provided!");
+        console.error("❌ Error: No phone number provided!");
         return res.status(400).json({ error: "Phone number is required!" });
     }
 
     num = num.replace(/[^0-9]/g, '');
-    console.log("Sanitized phone number:", num);
+    console.log("📞 Sanitized phone number:", num);
 
     async function MASTERTECH_MD_PAIR_CODE() {
+        console.log("📂 Creating session folder for:", sessionCode);
         const { state, saveCreds } = await useMultiFileAuthState(`./temp/${sessionCode}`);
-        
+
         try {
-            console.log("Initializing bot...");
+            console.log("🚀 Initializing WhatsApp bot...");
             const bot = Masterpeace_elite({
                 auth: {
                     creds: state.creds,
@@ -50,32 +54,35 @@ router.get('/', async (req, res) => {
                 browser: ['Chrome (Linux)', '', '']
             });
 
-            console.log("Bot instance created successfully");
+            console.log("✅ Bot initialized successfully!");
 
+            console.log("🔄 Requesting pairing code for:", num);
+            
+            // Add a timeout in case requestPairingCode hangs
             let code;
             try {
-                console.log("Requesting pairing code for:", num);
-                code = await bot.requestPairingCode(num);
-                console.log("Pairing code response:", code);
-            } catch (pairingError) {
-                console.error("Error generating pairing code:", pairingError);
-                return res.status(500).json({ sessionCode, error: "Failed to generate pairing code", details: pairingError.message });
+                code = await Promise.race([
+                    bot.requestPairingCode(num),
+                    new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout requesting pairing code")), 10000)) // 10 sec timeout
+                ]);
+                console.log("🔑 Pairing code received:", code);
+            } catch (error) {
+                console.error("❌ Error requesting pairing code:", error.message);
+                return res.status(500).json({ sessionCode, error: "Failed to generate pairing code", details: error.message });
             }
 
             if (!code || typeof code !== 'string' || code.length !== 8) {
-                console.log("Invalid pairing code received:", code);
+                console.log("❌ Invalid pairing code received:", code);
                 return res.json({ sessionCode, code: "Error: Invalid 8-character pairing code" });
             }
 
-            console.log("Sending pairing code to client:", code);
-            res.json({ sessionCode, code });
+            console.log("📩 Sending pairing code to client:", code);
+            return res.json({ sessionCode, code });
 
         } catch (err) {
-            console.error("Service Error:", err);
+            console.error("❌ Service Error:", err);
             removeFile(`./temp/${sessionCode}`);
-            if (!res.headersSent) {
-                res.status(500).json({ sessionCode, code: "Service Currently Unavailable", details: err.message });
-            }
+            return res.status(500).json({ sessionCode, error: "Service Currently Unavailable", details: err.message });
         }
     }
 
