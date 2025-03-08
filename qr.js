@@ -61,24 +61,24 @@ router.get('/', async (req, res) => {
 				   let GIFTED_MD_TEXT = `
 *𝐒𝐞𝐬𝐬𝐢𝐨𝐧 𝐜𝐨𝐧𝐧𝐞𝐜𝐭𝐞𝐝*
 *𝐄𝐧𝐣𝐨𝐲😺*
-*By _ᴍᴀʟᴠɪɴ ᴋɪɴɢ⚪_*
+*By _MASTERPEACE ELITE⚪_*
 ______________________________
 ╭┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅◇
-║『 𝐘𝐎𝐔'𝐕𝐄 𝐂𝐇𝐎𝐒𝐄𝐍 𝐁𝐌𝐖 𝐗𝐃 』
+║『 𝐘𝐎𝐔'𝐕𝐄 𝐂𝐇𝐎𝐒𝐄𝐍 MASTERTECH-M𝐃 』
 ║ You've Completed the First Step
 ║ to Deploy a Whatsapp Bot.
 ╰┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉
 ╭┄┄────────────◇
 ┋ 『••• 𝗩𝗶𝘀𝗶𝘁 𝗙𝗼𝗿 𝗛𝗲𝗹𝗽 •••』
-┋❍ 𝐘𝐨𝐮𝐭𝐮𝐛𝐞: _youtube.com/@malvintech2_
+┋❍ 𝐘𝐨𝐮𝐭𝐮𝐛𝐞: _#######_
 ┋❍ 𝐎𝐰𝐧𝐞𝐫: _https://wa.me/263714757857_
-┋❍ 𝐑𝐞𝐩𝐨: _https://github.com/kingmalvn/BMW-XD_
-┋❍ 𝐖𝐚𝐆𝐫𝐨𝐮𝐩: _https://chat.whatsapp.com/IVVhfV9ULdW250HRqKpiNe_
-┋❍ 𝐖𝐚𝐂𝐡𝐚𝐧𝐧𝐞𝐥: _https://whatsapp.com/channel/0029Vac8SosLY6d7CAFndv3Z_
-┋❍ 𝐈𝐧𝐬𝐭𝐚𝐠𝐫𝐚𝐦: _https://www.instagram.com/@techlord01_
+┋❍ 𝐑𝐞𝐩𝐨: _https://github.com/mastertech-md/Mastertech_
+┋❍ 𝐖𝐚𝐆𝐫𝐨𝐮𝐩: _https://whatsapp.com/channel/0029VazeyYx35fLxhB5TfC3D_
+┋❍ 𝐖𝐚𝐂𝐡𝐚𝐧𝐧𝐞𝐥: _https://whatsapp.com/channel/0029VazeyYx35fLxhB5TfC3D_
+┋❍ 𝐈𝐧𝐬𝐭𝐚𝐠𝐫𝐚𝐦: _#########_
 ┋ ☬ ☬ ☬ ☬
 ╰┄┄┄┄┅┅┅┅┅┅┄┄┄┄┄┄┄┄┄┄┄ 
-    🚘 𝐁𝐌𝐖 𝐗𝐃 🚘
+    🚘 MASTERTECH-MD 🚘
 ______________________________
 
 _Don't Forget To Give Star⭐ To My Repo_`
