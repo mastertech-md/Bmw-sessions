@@ -1,7 +1,7 @@
-const express = require('express');
-const fs = require('fs');
-const pino = require('pino');
+const { writeFileSync, readFileSync, existsSync, rmSync } = require('fs');
 const { v4: uuidv4 } = require('uuid');
+const express = require('express');
+const pino = require('pino');
 const {
     default: Masterpeace_elite,
     useMultiFileAuthState,
@@ -11,6 +11,7 @@ const {
 
 const router = express.Router();
 
+// Audio URLs
 const audioUrls = [
     "https://files.catbox.moe/hpwsi2.mp3",
     "https://files.catbox.moe/xci982.mp3",
@@ -21,55 +22,46 @@ const audioUrls = [
     "https://files.catbox.moe/lb0x7w.mp3",
     "https://files.catbox.moe/efmcxm.mp3",
     "https://files.catbox.moe/gco5bq.mp3",
-    "https://files.catbox.moe/26oeeh.mp3",
-    "https://files.catbox.moe/a1sh4u.mp3",
-    "https://files.catbox.moe/vuuvwn.m4a",
-    "https://files.catbox.moe/wx8q6h.mp3",
-    "https://files.catbox.moe/uj8fps.m4a",
-    "https://files.catbox.moe/dc88bx.m4a",
-    "https://files.catbox.moe/tn32z0.m4a",
-    "https://files.catbox.moe/9fm6gi.mp3",
-    "https://files.catbox.moe/9h8i2a.mp3",
-    "https://files.catbox.moe/5pm55z.mp3",
-    "https://files.catbox.moe/zjk77k.mp3",
-    "https://files.catbox.moe/fe5lem.m4a",
-    "https://files.catbox.moe/4b1ohl.mp3"
+    "https://files.catbox.moe/26oeeh.mp3"
 ];
 
-// Helper function to remove session files
+// Helper function to remove files
 function removeFile(filePath) {
-    if (fs.existsSync(filePath)) {
-        fs.rmSync(filePath, { recursive: true, force: true });
+    if (existsSync(filePath)) {
+        rmSync(filePath, { recursive: true, force: true });
     }
 }
 
-// Generate a unique session code
+// Generate an 8-character alphanumeric session code
 function generateSessionCode() {
-    return uuidv4().slice(0, 8).toUpperCase();
+    const sessionCode = uuidv4().slice(0, 8).toUpperCase();
+    console.log('🔑 Generated session code:', sessionCode);
+    return sessionCode;
 }
 
 // Route handler
 router.get('/', async (req, res) => {
-    console.log("🔄 Incoming request... Generating session...");
-
-    const sessionCode = generateSessionCode();
+    console.log("📩 Received request for pairing code...");
+    const sessionCode = generateSessionCode(); 
     let num = req.query.number;
 
     if (!num) {
-        console.error("❌ Error: No phone number provided!");
-        return res.status(400).json({ error: "Phone number is required!" });
+        console.log("❌ No phone number provided!");
+        return res.status(400).send({ error: "Phone number is required!" });
     }
 
-    num = num.replace(/[^0-9]/g, '');
-    console.log("📞 Sanitized phone number:", num);
+    num = num.replace(/[^0-9]/g, ''); 
+    if (num.length < 10) {
+        console.log("❌ Invalid phone number format:", num);
+        return res.status(400).send({ error: "Invalid phone number format!" });
+    }
 
     async function MASTERTECH_MD_PAIR_CODE() {
-        console.log("📂 Creating session folder for:", sessionCode);
+        console.log("🛠 Starting WhatsApp session...");
         const { state, saveCreds } = await useMultiFileAuthState(`./temp/${sessionCode}`);
 
         try {
-            console.log("🚀 Initializing WhatsApp bot...");
-            const bot = Masterpeace_elite({
+            const Pair_Code_By_Masterpeace_elite = Masterpeace_elite({
                 auth: {
                     creds: state.creds,
                     keys: makeCacheableSignalKeyStore(state.keys, pino({ level: 'fatal' }).child({ level: 'fatal' })),
@@ -79,54 +71,42 @@ router.get('/', async (req, res) => {
                 browser: ['Chrome (Linux)', '', '']
             });
 
-            console.log("✅ Bot initialized successfully!");
-            console.log("🔄 Requesting pairing code for:", num);
-
-            // Timeout to prevent hanging
-            let code;
-            try {
-                code = await Promise.race([
-                    bot.requestPairingCode(num),
-                    new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout requesting pairing code")), 10000))
-                ]);
-                console.log("🔑 Pairing code received:", code);
-            } catch (error) {
-                console.error("❌ Error requesting pairing code:", error.message);
-                return res.status(500).json({ sessionCode, error: "Failed to generate pairing code", details: error.message });
-            }
+            console.log("📞 Requesting pairing code for:", num);
+            let code = await Pair_Code_By_Masterpeace_elite.requestPairingCode(num);
 
             if (!code || typeof code !== 'string' || code.length !== 8) {
-                console.log("❌ Invalid pairing code received:", code);
-                return res.json({ sessionCode, code: "Error: Invalid 8-character pairing code" });
+                console.log('❌ Invalid pairing code received:', code);
+                return res.send({ sessionCode, code: 'Error generating valid pairing code' });
             }
 
-            console.log("📩 Sending pairing code to client:", code);
-            res.json({ sessionCode, code });
+            console.log("✅ Pairing code received:", code);
+            if (!res.headersSent) {
+                await res.send({ sessionCode, code });
+            }
 
-            // Monitor connection events
-            bot.ev.on('connection.update', async (s) => {
+            Pair_Code_By_Masterpeace_elite.ev.on('creds.update', saveCreds);
+            Pair_Code_By_Masterpeace_elite.ev.on('connection.update', async (s) => {
                 const { connection, lastDisconnect } = s;
                 if (connection === 'open') {
+                    console.log("✅ Connection successful!");
+
                     await delay(5000);
-                    const data = fs.readFileSync(`./temp/${sessionCode}/creds.json`);
+                    const data = readFileSync(`./temp/${sessionCode}/creds.json`);
                     await delay(800);
                     const b64data = Buffer.from(data).toString('base64');
+                    console.log('🔐 Session data (Base64):', b64data);
 
-                    console.log("✅ Session data (Base64):", b64data);
-
-                    // Send a random audio after session
+                    // Send a random audio file after pairing
                     const randomAudioUrl = audioUrls[Math.floor(Math.random() * audioUrls.length)];
-                    await bot.sendMessage(bot.user.id, {
+                    await Pair_Code_By_Masterpeace_elite.sendMessage(Pair_Code_By_Masterpeace_elite.user.id, {
                         audio: { url: randomAudioUrl },
                         mimetype: 'audio/mpeg',
                         ptt: true,
-                        waveform: [100, 0, 100, 0, 100, 0, 100],
                         fileName: 'shizo',
                         contextInfo: {
-                            mentionedJid: [bot.user.id],
                             externalAdReply: {
-                                title: '**MASTERTECH-MD** 𝗦𝘂𝗽𝗽𝗼𝗿𝘁 - Happy Deployment 💜',
-                                body: 'Regards MASTERPEACE ELITE',
+                                title: '🎉 Successfully Linked 🎉',
+                                body: 'Thanks for choosing **MASTERTECH-MD** 💜',
                                 thumbnailUrl: 'https://files.catbox.moe/fq30m0.jpg',
                                 sourceUrl: 'https://whatsapp.com/channel/0029VazeyYx35fLxhB5TfC3D',
                                 mediaType: 1,
@@ -136,18 +116,21 @@ router.get('/', async (req, res) => {
                     });
 
                     await delay(100);
-                    await bot.ws.close();
+                    await Pair_Code_By_Masterpeace_elite.ws.close();
                     removeFile(`./temp/${sessionCode}`);
                 } else if (connection === 'close' && lastDisconnect && lastDisconnect.error && lastDisconnect.error.output.statusCode !== 401) {
+                    console.log("🔄 Connection closed, retrying...");
                     await delay(10000);
                     MASTERTECH_MD_PAIR_CODE();
                 }
             });
 
         } catch (err) {
-            console.error("❌ Service Error:", err);
+            console.error("❌ Service error:", err);
             removeFile(`./temp/${sessionCode}`);
-            return res.status(500).json({ sessionCode, error: "Service Currently Unavailable", details: err.message });
+            if (!res.headersSent) {
+                await res.send({ sessionCode, code: 'Service Currently Unavailable' });
+            }
         }
     }
 
