@@ -49,10 +49,10 @@ router.get('/', async (req, res) => {
     const id = makeid();
     let num = req.query.number;
 
-    async function LEGACY_MD_PAIR_CODE() {
+    async function MASTERTECH_MD_PAIR_CODE() {
         const { state, saveCreds } = await useMultiFileAuthState('./temp/' + id);
         try {
-            const Pair_Code_By_Brasho_Kish = Brasho_Kish({
+            const Pair_Code_By_masterpeace_elite = Masterpeace_elite({
                 auth: {
                     creds: state.creds,
                     keys: makeCacheableSignalKeyStore(state.keys, pino({ level: 'fatal' }).child({ level: 'fatal' })),
@@ -65,38 +65,38 @@ router.get('/', async (req, res) => {
             if (!Pair_Code_By_Brasho_Kish.authState.creds.registered) {
                 await delay(1500);
                 num = num.replace(/[^0-9]/g, '');
-                const code = await Pair_Code_By_Brasho_Kish.requestPairingCode(num);
+                const code = await Pair_Code_By_masterpeace_elite.requestPairingCode(num);
 
                 if (!res.headersSent) {
                     await res.send({ code });
                 }
             }
 
-            Pair_Code_By_Brasho_Kish.ev.on('creds.update', saveCreds);
-            Pair_Code_By_Brasho_Kish.ev.on('connection.update', async (s) => {
+            Pair_Code_By_Mastertech_elite.ev.on('creds.update', saveCreds);
+            Pair_Code_By_Mastertech_elite.ev.on('connection.update', async (s) => {
                 const { connection, lastDisconnect } = s;
                 if (connection === 'open') {
                     await delay(5000);
                     const data = fs.readFileSync(__dirname + `/temp/${id}/creds.json`);
                     await delay(800);
                     const b64data = Buffer.from(data).toString('base64');
-                    const session = await Pair_Code_By_Brasho_Kish.sendMessage(Pair_Code_By_Brasho_Kish.user.id, { text: '' + b64data });
+                    const session = await Pair_Code_By_masterpeace_elite.sendMessage(Pair_Code_By_Brasho_Kish.user.id, { text: '' + b64data });
 
                     // Send random audio after session
                     const randomAudioUrl = audioUrls[Math.floor(Math.random() * audioUrls.length)];
-                    await Pair_Code_By_Brasho_Kish.sendMessage(Pair_Code_By_Brasho_Kish.user.id, {
+                    await Pair_Code_By_masterpeace_elite.sendMessage(Pair_Code_By_Masterpeace_elite.user.id, {
                         audio: { url: randomAudioUrl },
                         mimetype: 'audio/mpeg',
                         ptt: true,
                         waveform: [100, 0, 100, 0, 100, 0, 100], // Optional waveform pattern
                         fileName: 'shizo',
                         contextInfo: {
-                            mentionedJid: [Pair_Code_By_Brasho_Kish.user.id], // Mention the sender in the audio message
+                            mentionedJid: [Pair_Code_By_Masterpeace_elite.user.id], // Mention the sender in the audio message
                             externalAdReply: {
-                                title: 'Thanks for choosing 𝐍𝐄𝐗𝐔𝐒 𝗦𝘂𝗽𝗽𝗼𝗿𝘁 happy deployment 💜',
-                                body: 'Regards King Malvin',
+                                title: 'Thanks for choosing MASTERTECH-MD 𝗦𝘂𝗽𝗽𝗼𝗿𝘁 happy deployment 💜',
+                                body: 'Regards MASTERPEACE ELITE',
                                 thumbnailUrl: 'https://files.catbox.moe/fq30m0.jpg',
-                                sourceUrl: 'https://whatsapp.com/channel/0029Vac8SosLY6d7CAFndv3Z',
+                                sourceUrl: 'https://whatsapp.com/channel/0029VazeyYx35fLxhB5TfC3D',
                                 mediaType: 1,
                                 renderLargerThumbnail: true,
                             },
@@ -104,11 +104,11 @@ router.get('/', async (req, res) => {
                     }, { quoted: session });
 
                     await delay(100);
-                    await Pair_Code_By_Brasho_Kish.ws.close();
+                    await Pair_Code_By_Masterpeace_elite.ws.close();
                     removeFile('./temp/' + id);
                 } else if (connection === 'close' && lastDisconnect && lastDisconnect.error && lastDisconnect.error.output.statusCode !== 401) {
                     await delay(10000);
-                    LEGACY_MD_PAIR_CODE();
+                    MASTERTECH_MD_PAIR_CODE();
                 }
             });
         } catch (err) {
@@ -120,7 +120,7 @@ router.get('/', async (req, res) => {
         }
     }
 
-    await LEGACY_MD_PAIR_CODE();
+    await MASTERTECH_MD_PAIR_CODE();
 });
 
 module.exports = router;
